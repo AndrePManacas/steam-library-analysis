@@ -1,0 +1,10 @@
+# Logs
+*.log
+
+# Enviroment
+.env
+Pipfile
+Pipfile.lock
+
+# Data
+json_response/
