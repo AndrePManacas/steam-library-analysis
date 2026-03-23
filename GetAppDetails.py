@@ -23,21 +23,37 @@ app_list_folder = os.environ['GET_APP_LIST_FOLDER']
 app_details_folder = os.environ['GET_APP_DETAILS_FOLDER']
 app_details_folder_fail = os.environ['GET_APP_DETAILS_FOLDER_FAIL']
 
+completed_file = f"{app_details_folder}/completed.txt"
+
 def main():
 
     app_list_files = sorted(os.listdir(app_list_folder), key=extract_num)
+
+    if os.path.exists(completed_file):
+        lines = open(completed_file).read().splitlines()
+        completed = set(lines[:-1])  
+    else:
+        completed = set()
 
     for file in app_list_files:
         logger.info(f"-------- Get appids for file {file} --------")
         appids = get_appids(file)
 
         for appid in appids:
+
+            if str(appid) in completed:
+                logger.info(f"Skipping appid {appid}, already completed")
+                continue
+
             logger.info(f"Get app details for appid {appid}")
             response = get_appid_details(appid)
             time.sleep(1)
 
             if response == None:
                 continue
+            
+            with open(completed_file, 'a') as f:
+                f.write(f"{appid}\n")
 
             for dlc in response:
                 logger.info(f"Get dlc details with appid {dlc} for appid {appid}")
@@ -64,17 +80,21 @@ def get_appid_details(appid):
     for retry in range(3):
 
         logger.info(f"API call for appid {appid} - {retry}/3")
+        try:
+            r = requests.get("http://store.steampowered.com/api/appdetails/", params=payload)
 
-        r = requests.get("http://store.steampowered.com/api/appdetails/", params=payload)
+            if r.status_code == 200:
+                logger.info(f"API call for appid {appid} Successfull")
+                break
+            
+            logger.warning(f"API call for appid {appid} Faild with status {r.status_code}")
 
-        if r.status_code == 200:
-            logger.info(f"API call for appid {appid} Successfull")
-            break
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Connection error for appid {appid}: {e}")
+
         time.sleep(5)
-
     else:
-        logger.warning(f"API call for appid {appid} Faild with status {r.status_code}")
-
+        
         with open(f"{app_details_folder_fail}/appid_api_failed.txt", 'a') as f:
             f.write(f"{appid}\n")
         return None
