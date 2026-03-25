@@ -30,6 +30,7 @@ def main(start_file = None):
     app_list_files = sorted(os.listdir(app_list_folder), key=extract_num)
 
     if start_file in app_list_files:
+        logger.info(f"Starting from file: {start_file}")
         app_list_files = app_list_files[app_list_files.index(start_file):]
 
     if os.path.exists(completed_file):
