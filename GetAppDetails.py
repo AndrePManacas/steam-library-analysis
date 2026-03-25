@@ -25,9 +25,12 @@ app_details_folder_fail = os.environ['GET_APP_DETAILS_FOLDER_FAIL']
 
 completed_file = f"{app_details_folder}/completed.txt"
 
-def main():
+def main(start_file = None):
 
     app_list_files = sorted(os.listdir(app_list_folder), key=extract_num)
+
+    if start_file in app_list_files:
+        app_list_files = app_list_files[app_list_files.index(start_file):]
 
     if os.path.exists(completed_file):
         lines = open(completed_file).read().splitlines()
@@ -84,6 +87,11 @@ def get_appid_details(appid):
             r = requests.get("http://store.steampowered.com/api/appdetails/", params=payload)
 
             if r.status_code == 200:
+                if not r.text:
+                    logger.warning(f"Empty response for appid {appid}, retrying...")
+                    time.sleep(5)
+                    continue
+
                 logger.info(f"API call for appid {appid} Successfull")
                 break
             
@@ -124,4 +132,5 @@ def extract_num(filename):
     return int(match.group()) if match else float('inf')
 
 if __name__ == '__main__':
-    main()
+    start_file = sys.argv[1] if len(sys.argv) > 1 else None
+    main(start_file)
